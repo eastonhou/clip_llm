@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "pretrain",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/trainer.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true,
+            "args": [
+                //"--lora_enable", "True",
+                "--data_path", "data/llm/LLaVA-Pretrain/blip_laion_cc_sbu_558k.json",
+                "--image_folder", "data/llm/LLaVA-Pretrain/images",
+                "--output_dir", "data/checkpoints/llava-v1.5-7b-lora",
+                "--mm_projector_lr", "1e-3",
+                "--save_steps", "2"
+                //"--bits", "4"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "HF_ENDPOINT": "https://hf-mirror.com"
+            }
+        }
+    ]
+}
