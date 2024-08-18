@@ -12,6 +12,9 @@ class Model(nn.Module):
         self.mm_projector = self._build_projector()
         self._keys_to_ignore_on_save = None
 
+    @property
+    def config(self): return self.language.module.config
+
     def _build_projector(self):
         return nn.Sequential(
             nn.Linear(self.vision.hidden_size, self.language.hidden_size),

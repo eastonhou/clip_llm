@@ -16,7 +16,7 @@
                 //"--lora_enable", "True",
                 "--data_path", "data/llm/LLaVA-Pretrain/blip_laion_cc_sbu_558k.json",
                 "--image_folder", "data/llm/LLaVA-Pretrain/images",
-                "--output_dir", "data/checkpoints/llava-v1.5-7b-lora",
+                "--output_dir", "data/checkpoints/pretrain",
                 "--mm_projector_lr", "1e-3",
                 "--save_steps", "2"
                 //"--bits", "4"
