@@ -1,4 +1,4 @@
-import torch, transformers, os, pathlib
+import torch, transformers, pathlib
 import models, loader, trutils
 from typing import Optional
 from dataclasses import dataclass, field
@@ -31,7 +31,7 @@ class TrainingArguments(transformers.TrainingArguments):
     #freeze_mm_mlp_adapter: bool = field(default=False)
     #mpt_attn_impl: Optional[str] = field(default="triton")
     model_max_length: int = field(
-        default=2048,
+        default=4096,
         metadata={
             "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
         },
@@ -55,7 +55,7 @@ class TrainingArguments(transformers.TrainingArguments):
     lora_dropout: float = 0.05
     lora_weight_path: str = ''
     lora_bias: str = 'none'
-    mm_projector_lr: Optional[float] = field(default=2e-5)
+    mm_projector_lr: Optional[float] = field(default=None)
     bf16: Optional[bool] = field(default=True)
     group_by_modality_length: bool = field(default=False)
     gradient_checkpointing: bool = field(default=True)
@@ -66,6 +66,7 @@ class TrainingArguments(transformers.TrainingArguments):
     save_total_limit: int = 1
     lr_scheduler_type: str = 'cosine'
     warmup_ratio: float = 0.03
+    pretrain_dir: Optional[str] = field(default=None)
 
 def _make_bnb_args(train_args):
     from transformers import BitsAndBytesConfig
@@ -128,13 +129,13 @@ def train():
         dtype=(torch.bfloat16 if train_args.bf16 else None),
         bnb_args=bnb_args)
     model.prepare_for_training(train_args, bnb_args)
-    if os.path.isfile(model_args.checkpoint_path): model.load_model(model_args.checkpoint_path)
     dataset = loader.SupervisedDataset(model.vision.processor, model.language.tokenizer, data_args.image_folder, data_args.data_path)
     collator = loader.SupervisedDataCollator(model.language.tokenizer)
     trainer = Trainer(model=model, args=train_args, train_dataset=dataset, data_collator=collator)
     if list(pathlib.Path(train_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:
+        trainer._load_from_checkpoint(transformers.trainer_utils.get_last_checkpoint(train_args.pretrain_dir))
         trainer.train()
     trainer.save_state()
 

@@ -25,6 +25,30 @@
                 "PYTHONPATH": "${workspaceFolder}",
                 "HF_ENDPOINT": "https://hf-mirror.com"
             }
+        },
+        {
+            "name": "finetune",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/trainer.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false,
+            "args": [
+                "--lora_enable", "True",
+                "--data_path", "data/llm/LLaVA-Finetune/llava_v1_5_mix665k.json",
+                "--image_folder", "data/llm/LLaVA-Finetune",
+                "--output_dir", "data/checkpoints/finetune",
+                "--mm_projector_lr", "2e-5",
+                "--learning_rate", "2e-4",
+                "--save_steps", "2",
+                "--pretrain_dir", "data/checkpoints/pretrain"
+                //"--bits", "4"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "HF_ENDPOINT": "https://hf-mirror.com"
+            }
         }
     ]
 }
