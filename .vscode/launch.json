@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/trainer.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "justMyCode": true,
+            "justMyCode": false,
             "args": [
                 //"--lora_enable", "True",
                 "--data_path", "data/llm/LLaVA-Pretrain/blip_laion_cc_sbu_558k.json",

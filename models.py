@@ -10,6 +10,7 @@ class Model(nn.Module):
         self.language = language_models.LanguageModel(model_args.language_model, dtype, bnb_args)
         self.pe = rotary.RotaryPositionEncoder(self.language.hidden_size, self.language.num_attention_heads)
         self.mm_projector = self._build_projector()
+        self._keys_to_ignore_on_save = None
 
     def _build_projector(self):
         return nn.Sequential(
