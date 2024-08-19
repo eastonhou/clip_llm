@@ -135,7 +135,8 @@ def train():
     if list(pathlib.Path(train_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:
-        trainer._load_from_checkpoint(transformers.trainer_utils.get_last_checkpoint(train_args.pretrain_dir))
+        if train_args.pretrain_dir:
+            trainer._load_from_checkpoint(transformers.trainer_utils.get_last_checkpoint(train_args.pretrain_dir))
         trainer.train()
     trainer.save_state()
 
