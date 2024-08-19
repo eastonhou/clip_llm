@@ -9,7 +9,23 @@ class VisionModelBase(grmodel.ModuleBase):
         super().__init__()
 
     def forward(self, images):
-        ori_shapes = [x.shape[:2] for x in images]
+        def _insert_zeros(values, default):
+            itr = iter(values)
+            values[:] = [default if x is None else next(itr) for x in images]
+        _images = [x for x in images if x is not None]
+        _outputs = self._forward(_images)
+        _lengths = [x.shape[0] for x in _outputs['hidden_states']]
+        _insert_zeros(_outputs['hidden_states'], torch.zeros(0, 1024, device=self.device))
+        _insert_zeros(_outputs['position'], np.zeros((0, 2), dtype=int))
+        _insert_zeros(_lengths, 0)
+        return {
+            'hidden_states': torch.cat(_outputs['hidden_states'], 0),
+            'position': np.concatenate(_outputs['position'], 0),
+            'lengths': _lengths
+        }
+
+    def _forward(self, images):
+        #ori_shapes = [x.shape[:2] for x in images]
         images, positions, scl_shapes, ali_shapes = self.preprocess(images, self.patch_size)
         batch_patches = [imutils.chunk_image(x, self.chunk_size, self.overlap_size, 0) for x in images]
         all_patches = np.array([x['image'] for x in gcutils.flatten(batch_patches)])
@@ -23,16 +39,18 @@ class VisionModelBase(grmodel.ModuleBase):
             output = _embeddings.reshape(-1, _embeddings.shape[-1])
             outputs.append(output)
             start += len(patches)
-        masks = grutils.sequence_mask(self.tensor([x.shape[0] for x in positions]))
-        hidden_states = nn.utils.rnn.pad_sequence(outputs, batch_first=True)
-        positions = nn.utils.rnn.pad_sequence([self.tensor(x) for x in positions], batch_first=True)
+        #masks = grutils.sequence_mask(self.tensor([x.shape[0] for x in positions]))
+        #hidden_states = torch.cat(hidden_states, 0)
+        #positions = torch.cat(positions, 0)
+        #positions = nn.utils.rnn.pad_sequence([self.tensor(x) for x in positions], batch_first=True)
         return {
-            'hidden_states': hidden_states,
-            'mask': masks,
+            'hidden_states': outputs,
+            #'mask': masks,
             'position': positions,
-            'original_shapes': self.tensor(ori_shapes),
-            'scaled_shapes': self.tensor(scl_shapes),
-            'aligned_shapes': self.tensor(ali_shapes)
+            #'lengths': lengths
+            #'original_shapes': self.tensor(ori_shapes),
+            #'scaled_shapes': self.tensor(scl_shapes),
+            #'aligned_shapes': self.tensor(ali_shapes)
         }
 
     def preprocess(self, images, patch_size):

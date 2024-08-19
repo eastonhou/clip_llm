@@ -27,6 +27,7 @@ class SupervisedDataset(Dataset):
         return {'image': image, 'input_ids': torch.tensor(input_ids), 'labels': torch.tensor(target_ids)}
 
     def _process_image(self, source):
+        if 'image' not in source: return None
         path = os.path.join(self.image_folder, source['image'])
         image = Image.open(path)
         processed = self.image_processor.preprocess(image, return_tensors='np')['pixel_values'][0]
@@ -77,7 +78,7 @@ class SupervisedDataCollator:
         input_ids = self._pad_sequence(input_ids)
         labels = self._pad_sequence(labels)
         batch = dict(input_ids=input_ids, labels=labels, attention_mask=input_ids.ne(self.tokenizer.pad_token_id))
-        batch['images'] = [x['image'].transpose(1, 2, 0) for x in instances]
+        batch['images'] = [x['image'].transpose(1, 2, 0) if x['image'] is not None else None for x in instances]
         return batch
 
     def _pad_sequence(self, sequences):

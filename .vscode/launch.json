@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/trainer.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "justMyCode": false,
+            "justMyCode": true,
             "args": [
                 //"--lora_enable", "True",
                 "--data_path", "data/llm/LLaVA-Pretrain/blip_laion_cc_sbu_558k.json",
@@ -33,7 +33,7 @@
             "program": "${workspaceFolder}/trainer.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "justMyCode": false,
+            "justMyCode": true,
             "args": [
                 "--lora_enable", "True",
                 "--data_path", "data/llm/LLaVA-Finetune/llava_v1_5_mix665k.json",

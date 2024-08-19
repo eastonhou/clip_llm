@@ -39,7 +39,7 @@ class Model(nn.Module):
         vision_outputs = self.vision(images)
         vision_states = self.mm_projector(vision_outputs['hidden_states'])
         vision_states = self.pe.apply_rotary_v(vision_outputs['position'], vision_states)
-        vision_states = [x[y] for x, y in zip(vision_states, vision_outputs['mask'])]
+        vision_states = vision_states.split(vision_outputs['lengths'])
         return vision_states
 
     def prepare_inputs_labels_for_multimodal(self, images, input_ids, attention_mask, labels):

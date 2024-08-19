@@ -17,16 +17,16 @@ class RotaryPositionEncoder(nn.Module):
     def apply_rotary_qk(self, position, *args):
         pos = position.clip(0, self.freq_cis.shape[0] - 1)
         freqs = self.freq_cis[pos]
-        bn, seq, heads, dim = args[0].shape
-        args_ = [x.reshape(bn, seq, heads // 2, 2, dim // 2, 2) for x in args]
-        freqs = freqs[:, :, None, :, :]
+        *bs, heads, dim = args[0].shape
+        args_ = [x.reshape(*bs, heads // 2, 2, dim // 2, 2) for x in args]
+        freqs = freqs[..., None, :, :, :]
         outputs = [self._complex_mul(x, freqs).view(y.shape) for x, y in zip(args_, args)]
         return outputs
 
     def apply_rotary_v(self, position, value):
-        _value = value.view(*value.shape[:2], self.num_attention_heads, -1)
+        _value = value.view(*value.shape[:-1], self.num_attention_heads, -1)
         output = self.apply_rotary_qk(position, _value)[0]
-        output = output.view(*output.shape[:2], -1)
+        output = output.flatten(-2)
         return output
 
     def _complex_mul(self, x, y):
