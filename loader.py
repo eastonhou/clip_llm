@@ -1,5 +1,5 @@
 import torch, json, os
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Sampler
 from PIL import Image
 from typing import Dict, Sequence
 from dataclasses import dataclass
@@ -42,16 +42,6 @@ class SupervisedDataset(Dataset):
         sentence['role'] = roles[sentence.pop('from')]
         return sentence
 
-    '''
-    def _make_prompt(self, conversations):
-        def _make_conv(a, b): return f"{a['role']}: {a['value']} {b['role']}: {b['value']}</s>"
-        messages = ''.join(
-            _make_conv(conversations[2 * i], conversations[2 * i + 1])
-            for i in range(len(conversations) // 2))
-        prompt = f'{SYSTEM_MESSAGE} {messages}'
-        return prompt
-    '''
-
     def _make_token_ids(self, conversations):
         input_ids = self.tokenizer(SYSTEM_MESSAGE).input_ids
         target_ids = [IGNORE_INDEX] * len(input_ids)
@@ -85,3 +75,15 @@ class SupervisedDataCollator:
         padded = torch.nn.utils.rnn.pad_sequence(sequences, True, self.tokenizer.pad_token_id)
         padded = padded[:, :self.tokenizer.model_max_length]
         return padded
+
+class LengthGroupedSampler(Sampler):
+    def __init__(self, batch_size: int, world_size: int, datasource: Dataset):
+        self.batch_size = batch_size
+        self.world_size = world_size
+        self.datasource = datasource
+        self.indices = torch.randperm(len(self))
+
+    def __len__(self): return len(self.datasource)
+
+    def __iter__(self):
+        return iter(self.indices)

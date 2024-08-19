@@ -11,14 +11,14 @@
             "program": "${workspaceFolder}/trainer.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "justMyCode": true,
+            "justMyCode": false,
             "args": [
                 //"--lora_enable", "True",
                 "--data_path", "data/llm/LLaVA-Pretrain/blip_laion_cc_sbu_558k.json",
                 "--image_folder", "data/llm/LLaVA-Pretrain/images",
                 "--output_dir", "data/checkpoints/pretrain",
                 "--mm_projector_lr", "1e-3",
-                "--save_steps", "2"
+                "--save_steps", "64"
                 //"--bits", "4"
             ],
             "env": {
@@ -42,8 +42,9 @@
                 "--mm_projector_lr", "2e-5",
                 "--learning_rate", "2e-4",
                 "--save_steps", "2",
-                "--pretrain_dir", "data/checkpoints/pretrain"
-                //"--bits", "4"
+                "--group_by_length", "True",
+                "--pretrain_dir", "data/checkpoints/pretrain",
+                "--bits", "4"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",

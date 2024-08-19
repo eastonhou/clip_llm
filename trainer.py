@@ -32,9 +32,7 @@ class TrainingArguments(transformers.TrainingArguments):
     #mpt_attn_impl: Optional[str] = field(default="triton")
     model_max_length: int = field(
         default=4096,
-        metadata={
-            "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
-        },
+        metadata={"help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."},
     )
     double_quant: bool = field(
         default=True,
@@ -64,9 +62,11 @@ class TrainingArguments(transformers.TrainingArguments):
     gradient_accumulation_steps: int = 8
     save_steps: int = 1000
     save_total_limit: int = 1
+    num_train_epochs: int = 1
     lr_scheduler_type: str = 'cosine'
     warmup_ratio: float = 0.03
     pretrain_dir: Optional[str] = field(default=None)
+    group_by_length: Optional[bool] = True
 
 def _make_bnb_args(train_args):
     from transformers import BitsAndBytesConfig
@@ -87,6 +87,16 @@ def _make_bnb_args(train_args):
         return {}
 
 class Trainer(transformers.Trainer):
+    def _get_train_sampler(self) -> Optional[torch.utils.data.Sampler]:
+        #lengths = self.train_dataset.modality_lengths
+        if self.args.group_by_length:
+            return loader.LengthGroupedSampler(
+                batch_size=self.args.train_batch_size,
+                world_size=self.args.world_size * self.args.gradient_accumulation_steps,
+                datasource=self.train_dataset)
+        else:
+            return super()._get_train_sampler()
+
     def create_optimizer(self):
         if self.optimizer is not None: return self.optimizer
         decay_parameters = trutils.get_parameter_names(self.model, transformers.trainer.ALL_LAYERNORM_LAYERS)
