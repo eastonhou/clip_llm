@@ -22,7 +22,7 @@ class LanguageModel(nn.Module):
     @property
     def num_attention_heads(self): return self.module.config.num_attention_heads
 
-    def prepare_for_training(self, train_args, bnb_args):
+    def prepare_for_training(self, train_args):
         from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model
         self.tokenizer.model_max_length = train_args.model_max_length
         if train_args.bits in [4, 8]:
@@ -40,6 +40,11 @@ class LanguageModel(nn.Module):
             self.module = get_peft_model(self.module, lora_config)
         else:
             self.requires_grad_(False)
+
+    def merge(self):
+        from peft import peft_model
+        if isinstance(self.module, peft_model.PeftModel):
+            self.module = self.module.merge_and_unload()
 
     def find_all_linear_names(self):
         lora_module_names = set()
@@ -61,3 +66,8 @@ class LanguageModel(nn.Module):
                               attention_mask=attention_mask,
                               labels=labels)
         return outputs
+
+    def save(self, folder):
+        self.module.generation_config.do_sample = True
+        self.tokenizer.save_pretrained(folder)
+        self.module.save_pretrained(folder)

@@ -1,4 +1,4 @@
-import torch
+import torch, os
 import vision_models, language_models, rotary, constants
 from torch import nn
 from galois_runtime import grutils
@@ -21,8 +21,10 @@ class Model(nn.Module):
             nn.GELU(),
             nn.Linear(self.language.hidden_size, self.language.hidden_size))
 
-    def prepare_for_training(self, train_args, bnb_args):
-        self.language.prepare_for_training(train_args, bnb_args)
+    def prepare_for_training(self, train_args):
+        self.language.prepare_for_training(train_args)
+
+    def merge(self): self.language.merge()
 
     def load_model(self, ckpt_path):
         ckpt = torch.load(ckpt_path)
@@ -42,9 +44,8 @@ class Model(nn.Module):
         vision_states = vision_states.split(vision_outputs['lengths'])
         return vision_states
 
-    def prepare_inputs_labels_for_multimodal(self, images, input_ids, attention_mask, labels):
+    def prepare_inputs_labels_for_multimodal(self, images, input_ids, attention_mask, labels=None):
         vision_states = self.encode_vision(images)
-        #position_ids = torch.arange(0, input_ids.shape[1], dtype=torch.long, device=input_ids.device)
         input_ids = [x[y] for x, y in zip(input_ids, attention_mask)]
         labels = [x[y] for x, y in zip(labels, attention_mask)]
         new_input_embs = []
@@ -54,10 +55,6 @@ class Model(nn.Module):
             image_token_pos, = torch.where(_input_ids.eq(self.language.tokenizer.image_token_id))
             _input_ids[image_token_pos] = self.language.tokenizer.pad_token_id
             embeds = self.language.embed_tokens(_input_ids)
-            #split_input_ids = input_ids[k].split(self.language.tokenizer.image_token_id)
-            #split_sizes = [len(x) for x in split_input_ids]
-            #split_labels = grutils.group(labels[k], split_sizes)
-            #embeds = torch.split(embeds, split_sizes, dim=0)
             offset = 0
             _vision_states = [vision_states[k]]
             _labels = labels[k]
@@ -88,3 +85,57 @@ class Model(nn.Module):
             'attention_mask': attention_mask,
             'labels': new_labels
         }
+
+    def prepare_inputs_for_generation(self, input_ids, past_key_values=None, inputs_embeds=None, **kwargs):
+        images = kwargs.pop("images", None)
+        #image_sizes = kwargs.pop("image_sizes", None)
+        inputs = self.language.module.prepare_inputs_for_generation(input_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, **kwargs)
+        if images is not None: inputs['images'] = images
+        #if image_sizes is not None: inputs['image_sizes'] = image_sizes
+        return inputs
+
+    @torch.inference_mode()
+    def generate(self, inputs, images, **kwargs):
+        position_ids = kwargs.pop("position_ids", None)
+        attention_mask = kwargs.pop("attention_mask", None)
+        if "inputs_embeds" in kwargs: raise NotImplementedError("`inputs_embeds` is not supported")
+        prepared = self.prepare_inputs_labels_for_multimodal(images, inputs, attention_mask)
+        return self.language.module.generate(
+            position_ids=position_ids,
+            attention_mask=attention_mask,
+            inputs_embeds=prepared['input_embeds'],
+            **kwargs)
+
+    def save(self, folder):
+        self.vision.save(os.path.join(folder, 'vision'))
+        self.language.save(os.path.join(folder, 'language'))
+        ckpt_path = os.path.join(folder, 'state.ckpt')
+        state_dict = {
+            'mm_projector': self.mm_projector.state_dict()
+        }
+        torch.save(state_dict, ckpt_path)
+
+    def load(self, folder):
+        ckpt_path = os.path.join(folder, 'state.ckpt')
+        ckpt = torch.load(ckpt_path)
+        self.mm_projector.load_state_dict(ckpt['mm_projector'])
+
+def save(training_folder, output_folder, model_args, dtype):
+    import os, transformers, safetensors
+    train_args = torch.load(os.path.join(training_folder, transformers.trainer.TRAINING_ARGS_NAME))
+    model = Model(model_args, dtype, {})
+    model.prepare_for_training(train_args)
+    delta_path = os.path.join(training_folder, transformers.trainer.SAFE_WEIGHTS_NAME)
+    state_dict = safetensors.torch.load_file(delta_path, device='cpu')
+    model.load_state_dict(state_dict, strict=False)
+    model.merge()
+    model.save(output_folder)
+
+def load(folder, dtype):
+    import types
+    folder = os.path.abspath(folder)
+    vision_folder = os.path.join(folder, 'vision')
+    language_folder = os.path.join(folder, 'language')
+    model = Model(types.SimpleNamespace(vision_model=vision_folder, language_model=language_folder), dtype, {})
+    model.load(folder)
+    return model

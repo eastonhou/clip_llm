@@ -1,4 +1,4 @@
-import torch, transformers, pathlib
+import torch, transformers, pathlib, os
 import models, loader, trutils
 from typing import Optional
 from dataclasses import dataclass, field
@@ -12,7 +12,7 @@ class ModelArguments:
     #tune_mm_mlp_adapter: bool = field(default=False)
     #mm_vision_select_layer: Optional[int] = field(default=-2)   # default to the last layer
     #pretrain_mm_mlp_adapter: Optional[str] = field(default=None)
-    checkpoint_path: Optional[str] = field(default='data/checkpoints/default.ckpt')
+    #checkpoint_path: Optional[str] = field(default='data/checkpoints/default.ckpt')
     #mm_projector_type: Optional[str] = field(default='mlp2x_gelu')
 
 @dataclass
@@ -134,11 +134,9 @@ def train():
     parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, train_args = parser.parse_args_into_dataclasses()
     bnb_args = _make_bnb_args(train_args)
-    model = models.Model(
-        model_args,
-        dtype=(torch.bfloat16 if train_args.bf16 else None),
-        bnb_args=bnb_args)
-    model.prepare_for_training(train_args, bnb_args)
+    model_dtype = (torch.bfloat16 if train_args.bf16 else None)
+    model = models.Model(model_args, dtype=model_dtype, bnb_args=bnb_args)
+    model.prepare_for_training(train_args)
     dataset = loader.SupervisedDataset(model.vision.processor, model.language.tokenizer, data_args.image_folder, data_args.data_path)
     collator = loader.SupervisedDataCollator(model.language.tokenizer)
     trainer = Trainer(model=model, args=train_args, train_dataset=dataset, data_collator=collator)
@@ -149,6 +147,10 @@ def train():
             trainer._load_from_checkpoint(transformers.trainer_utils.get_last_checkpoint(train_args.pretrain_dir))
         trainer.train()
     trainer.save_state()
+    models.save(
+        transformers.trainer_utils.get_last_checkpoint(train_args.output_dir),
+        os.path.join(train_args.output_dir, 'complete'),
+        model_args, model_dtype)
 
 if __name__ == '__main__':
     train()

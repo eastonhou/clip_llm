@@ -25,12 +25,10 @@ class VisionModelBase(grmodel.ModuleBase):
         }
 
     def _forward(self, images):
-        #ori_shapes = [x.shape[:2] for x in images]
         images, positions, scl_shapes, ali_shapes = self.preprocess(images, self.patch_size)
         batch_patches = [imutils.chunk_image(x, self.chunk_size, self.overlap_size, 0) for x in images]
         all_patches = np.array([x['image'] for x in gcutils.flatten(batch_patches)])
         embeddings = self.encode(all_patches)
-        #embeddings = self.projector(embeddings).permute(0, 2, 3, 1)
         start = 0
         outputs = []
         for patches, shape in zip(batch_patches, ali_shapes):
@@ -39,18 +37,9 @@ class VisionModelBase(grmodel.ModuleBase):
             output = _embeddings.reshape(-1, _embeddings.shape[-1])
             outputs.append(output)
             start += len(patches)
-        #masks = grutils.sequence_mask(self.tensor([x.shape[0] for x in positions]))
-        #hidden_states = torch.cat(hidden_states, 0)
-        #positions = torch.cat(positions, 0)
-        #positions = nn.utils.rnn.pad_sequence([self.tensor(x) for x in positions], batch_first=True)
         return {
             'hidden_states': outputs,
-            #'mask': masks,
             'position': positions,
-            #'lengths': lengths
-            #'original_shapes': self.tensor(ori_shapes),
-            #'scaled_shapes': self.tensor(scl_shapes),
-            #'aligned_shapes': self.tensor(ali_shapes)
         }
 
     def preprocess(self, images, patch_size):
@@ -121,3 +110,7 @@ class VisionModel(VisionModelBase):
         bs, wh, dim = features.shape
         embeddings = features.view(bs, int(wh**0.5), int(wh**0.5), dim)
         return embeddings
+
+    def save(self, folder):
+        self.processor.save_pretrained(folder)
+        self.module.save_pretrained(folder)
