@@ -16,7 +16,7 @@ class RotaryPositionEncoder(nn.Module):
 
     def apply_rotary_qk(self, position, *args):
         pos = position.clip(0, self.freq_cis.shape[0] - 1)
-        freqs = self.freq_cis[pos]
+        freqs = self.freq_cis[pos].to(args[0].device)
         *bs, heads, dim = args[0].shape
         args_ = [x.reshape(*bs, heads // 2, 2, dim // 2, 2) for x in args]
         freqs = freqs[..., None, :, :, :]

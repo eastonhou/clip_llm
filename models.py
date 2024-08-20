@@ -10,6 +10,7 @@ class Model(nn.Module):
         self.language = language_models.LanguageModel(model_args.language_model, dtype, bnb_args)
         self.pe = rotary.RotaryPositionEncoder(self.language.hidden_size, self.language.num_attention_heads)
         self.mm_projector = self._build_projector()
+        self.dtype = dtype
         self._keys_to_ignore_on_save = None
 
     @property
@@ -39,7 +40,7 @@ class Model(nn.Module):
 
     def encode_vision(self, images):
         vision_outputs = self.vision(images)
-        vision_states = self.mm_projector(vision_outputs['hidden_states'])
+        vision_states = self.mm_projector(vision_outputs['hidden_states'].to(self.dtype))
         vision_states = self.pe.apply_rotary_v(vision_outputs['position'], vision_states)
         vision_states = vision_states.split(vision_outputs['lengths'])
         return vision_states
