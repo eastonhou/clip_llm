@@ -24,7 +24,7 @@ class RotaryPositionEncoder(nn.Module):
         return outputs
 
     def apply_rotary_v(self, position, value):
-        _value = value.view(*value.shape[:-1], self.num_attention_heads, -1)
+        _value = value.view(*value.shape[:-1], self.num_attention_heads, value.shape[1] // self.num_attention_heads)
         output = self.apply_rotary_qk(position, _value)[0]
         output = output.flatten(-2)
         return output

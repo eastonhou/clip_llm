@@ -68,6 +68,8 @@ class TrainingArguments(transformers.TrainingArguments):
     pretrain_dir: Optional[str] = field(default=None)
     group_by_length: Optional[bool] = True
     report_to: str = 'wandb'
+    logging_steps: int = 1
+    eval_steps: int = 10
 
 def _make_bnb_args(train_args):
     from transformers import BitsAndBytesConfig
