@@ -104,6 +104,7 @@ class VisionModel(VisionModelBase):
 
     @torch.no_grad()
     def encode(self, images):
+        if images.size == 0: return torch.zeros((0, 0, 0, self.hidden_size), dtype=self.module.dtype)
         inputs = self.tensor(images.transpose(0, 3, 1, 2)).to(self.module.dtype)
         outputs = self.module(inputs, output_hidden_states=True)
         features = outputs.hidden_states[-2][:, 1:]
