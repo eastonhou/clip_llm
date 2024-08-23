@@ -60,7 +60,7 @@ class TrainingArguments(transformers.TrainingArguments):
     per_device_train_batch_size: int = 4
     per_device_eval_batch_size: int = 4
     gradient_accumulation_steps: int = 8
-    save_steps: int = 100
+    save_steps: int = 10
     save_total_limit: int = 1
     num_train_epochs: int = 1
     lr_scheduler_type: str = 'cosine'
