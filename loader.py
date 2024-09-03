@@ -81,9 +81,23 @@ class LengthGroupedSampler(Sampler):
         self.batch_size = batch_size
         self.world_size = world_size
         self.datasource = datasource
-        self.indices = torch.randperm(len(self))
+        self.indices = self._shuffle(batch_size)
 
     def __len__(self): return len(self.datasource)
+    def __iter__(self): return iter(self.indices)
 
-    def __iter__(self):
-        return iter(self.indices)
+    def _shuffle(self, batch_size):
+        has_image = torch.tensor(['image' in x for x in self.datasource.data_dict], dtype=torch.bool)
+        indices = torch.randperm(len(self))
+        has_image = has_image[indices]
+        start, end = 0, indices.shape[0] // batch_size * batch_size
+        while True:
+            _any = has_image[start:end].view(-1, batch_size).any(-1)
+            _nonzero = (~_any).nonzero()
+            if _nonzero.numel() == 0: break
+            _first_idx = _nonzero[0]
+            start += _first_idx.item() * batch_size
+            idx = torch.randperm(end - start)
+            indices[start:end] = indices[start:end][idx]
+            has_image[start:end] = has_image[start:end][idx]
+        return indices

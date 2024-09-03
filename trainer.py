@@ -68,7 +68,7 @@ class TrainingArguments(transformers.TrainingArguments):
     pretrain_dir: Optional[str] = field(default=None)
     group_by_length: Optional[bool] = True
     report_to: str = 'wandb'
-    logging_steps: int = 1
+    logging_steps: int = 5
     eval_steps: int = 10
 
 def _make_bnb_args(train_args):
@@ -150,10 +150,11 @@ def train():
             trainer._load_from_checkpoint(transformers.trainer_utils.get_last_checkpoint(train_args.pretrain_dir))
         trainer.train()
     trainer.save_state()
-    models.save(
-        transformers.trainer_utils.get_last_checkpoint(train_args.output_dir),
-        os.path.join(train_args.output_dir, 'complete'),
-        model_args, model_dtype)
+    if local_rank is None or local_rank == 0:
+        models.save(
+            transformers.trainer_utils.get_last_checkpoint(train_args.output_dir),
+            os.path.join(train_args.output_dir, 'complete'),
+            model_args, model_dtype)
 
 if __name__ == '__main__':
     train()
