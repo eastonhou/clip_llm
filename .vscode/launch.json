@@ -50,6 +50,21 @@
                 "PYTHONPATH": "${workspaceFolder}",
                 "HF_ENDPOINT": "https://hf-mirror.com"
             }
+        },
+        {
+            "name": "evaluate",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/evaluate.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false,
+            "args": [
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "HF_ENDPOINT": "https://hf-mirror.com"
+            }
         }
     ]
 }

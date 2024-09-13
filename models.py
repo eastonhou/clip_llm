@@ -12,6 +12,7 @@ class Model(nn.Module):
         self.mm_projector = self._build_projector()
         self.dtype = dtype
         self._keys_to_ignore_on_save = None
+        self.to(dtype)
 
     @property
     def config(self): return self.language.module.config
@@ -47,6 +48,8 @@ class Model(nn.Module):
 
     def prepare_inputs_labels_for_multimodal(self, images, input_ids, attention_mask, labels=None):
         vision_states = self.encode_vision(images)
+        if attention_mask is None: attention_mask = torch.ones_like(input_ids, dtype=torch.bool)
+        if labels is None: labels = input_ids
         input_ids = [x[y] for x, y in zip(input_ids, attention_mask)]
         labels = [x[y] for x, y in zip(labels, attention_mask)]
         new_input_embs = []

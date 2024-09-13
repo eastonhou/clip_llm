@@ -156,5 +156,15 @@ def train():
             os.path.join(train_args.output_dir, 'complete'),
             model_args, model_dtype)
 
+def merge_checkpoint():
+    parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
+    model_args, data_args, train_args = parser.parse_args_into_dataclasses()
+    model_dtype = (torch.bfloat16 if train_args.bf16 else None)
+    models.save(
+        transformers.trainer_utils.get_last_checkpoint(train_args.output_dir),
+        os.path.join(train_args.output_dir, 'complete'),
+        model_args, model_dtype)
+
 if __name__ == '__main__':
     train()
+    #merge_checkpoint()
