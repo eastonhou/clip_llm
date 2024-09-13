@@ -36,6 +36,7 @@ class CustomDataset(Dataset):
         data_dict['question_id'] = source['question_id']
         data_dict['text'] = source['text']
         data_dict['image_name'] = source['image']
+        data_dict['text'] = source['text']
         return data_dict
 
     def _preprocess(self, image, conversations):
