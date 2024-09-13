@@ -35,6 +35,7 @@ class CustomDataset(Dataset):
         data_dict = self._preprocess(image, conv)
         data_dict['question_id'] = source['question_id']
         data_dict['text'] = source['text']
+        data_dict['image_name'] = source['image']
         return data_dict
 
     def _preprocess(self, image, conversations):
@@ -51,7 +52,7 @@ class CustomDataset(Dataset):
     def _process_conversation(self, source):
         return [
             {'role': 'USER', 'value': constants.DEFAULT_IMAGE_TOKEN + '\n' + source['text']},
-            {'role': 'ASSISTANT', 'value': None}
+            {'role': 'ASSISTANT', 'value': ''}
         ]
 
     def _make_token_ids(self, conversations):
