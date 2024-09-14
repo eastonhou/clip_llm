@@ -1,5 +1,5 @@
 import argparse, torch, os, json, uuid
-import constants, models
+import constants, models, evaluator
 from galois_common import gcutils
 from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
@@ -91,12 +91,13 @@ def eval_model(args):
     model.cuda()
     answers_file = os.path.join(args.output_folder, 'answer.jsonl')
     gcutils.ensure_folder(answers_file)
-    ans_file = open(answers_file, 'w')
+    #ans_file = open(answers_file, 'w')
     data_loader = create_data_loader(args.input_folder, model.vision.processor, model.language.tokenizer)
-
+    eval_processor = evaluator.EvalAIAnswerProcessor()
+    answers = []
     for line in tqdm(data_loader):
         idx = line['question_id']
-        cur_prompt = line['text']
+        #cur_prompt = line['text']
         input_ids = line['input_ids'].to(device='cuda', non_blocking=True)
         with torch.inference_mode():
             output_ids = model.generate(
@@ -109,15 +110,19 @@ def eval_model(args):
                 max_new_tokens=args.max_new_tokens,
                 use_cache=True)
         outputs = model.language.tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
+        answers.append({'question_id': idx, 'answer': eval_processor(outputs)})
+        '''
         ans_id = str(uuid.uuid4())
         ans_file.write(json.dumps({'question_id': idx,
                                    'prompt': cur_prompt,
-                                   'text': outputs,
+                                   'answer': outputs,
                                    'answer_id': ans_id,
                                    'model_id': 'clip_llm',
                                    'metadata': {}}) + '\n')
+        '''
         # ans_file.flush()
-    ans_file.close()
+    #ans_file.close()
+    gcutils.save_json(answers_file, answers)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
