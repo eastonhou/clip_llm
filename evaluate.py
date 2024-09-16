@@ -1,4 +1,5 @@
-import argparse, torch, os, json, uuid
+# https://eval.ai/web/challenges/challenge-page/830/submission
+import argparse, torch, os, json
 import constants, models, evaluator
 from galois_common import gcutils
 from tqdm import tqdm
@@ -83,13 +84,22 @@ def create_data_loader(data_folder, image_processor, tokenizer, batch_size=1, nu
     data_loader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False, collate_fn=collate_fn)
     return data_loader
 
+from trainer import TrainingArguments
+def load_model(args):
+    #setattr(torch.nn.Linear, 'reset_parameters', lambda self: None)
+    #setattr(torch.nn.LayerNorm, 'reset_parameters', lambda self: None)
+    #model = models.load(args.model_path, torch.bfloat16)
+    from trainer import ModelArguments
+    model_args = ModelArguments()
+    model = models.load_from_training_session(args.session, model_args, torch.bfloat16)
+    model.to(torch.bfloat16)
+    return model
+
 def eval_model(args):
     # Model
-    setattr(torch.nn.Linear, 'reset_parameters', lambda self: None)
-    setattr(torch.nn.LayerNorm, 'reset_parameters', lambda self: None)
-    model = models.load(args.model_path, torch.bfloat16)
+    model = load_model(args)
     model.cuda()
-    answers_file = os.path.join(args.output_folder, 'answer.jsonl')
+    answers_file = os.path.join(args.output_folder, 'answer.json')
     gcutils.ensure_folder(answers_file)
     #ans_file = open(answers_file, 'w')
     data_loader = create_data_loader(args.input_folder, model.vision.processor, model.language.tokenizer)
@@ -127,6 +137,7 @@ def eval_model(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model-path', type=str, default='data/checkpoints/finetune/complete')
+    parser.add_argument('--session', type=str, default='data/checkpoints/finetune/checkpoint-2970')
     parser.add_argument('--input-folder', type=str, default='data/llm/eval/vqav2')
     parser.add_argument('--output-folder', type=str, default='data/eval/vqa2')
     parser.add_argument('--temperature', type=float, default=0)
