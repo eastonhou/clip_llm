@@ -125,6 +125,11 @@ class Model(nn.Module):
         self.mm_projector.load_state_dict(ckpt['mm_projector'])
 
 def save(training_folder, output_folder, model_args, dtype):
+    model = load_from_training_session(training_folder, model_args, dtype)
+    model.merge()
+    model.save(output_folder)
+
+def load_from_training_session(training_folder, model_args, dtype):
     import os, transformers, safetensors
     train_args = torch.load(os.path.join(training_folder, transformers.trainer.TRAINING_ARGS_NAME))
     model = Model(model_args, dtype, {})
@@ -132,8 +137,7 @@ def save(training_folder, output_folder, model_args, dtype):
     delta_path = os.path.join(training_folder, transformers.trainer.SAFE_WEIGHTS_NAME)
     state_dict = safetensors.torch.load_file(delta_path, device='cpu')
     model.load_state_dict(state_dict, strict=False)
-    model.merge()
-    model.save(output_folder)
+    return model
 
 def load(folder, dtype):
     import types
